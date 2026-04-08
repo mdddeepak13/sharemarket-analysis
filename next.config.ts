@@ -1,8 +1,8 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  // Enable Cache Components (PPR) — Next.js 16+
-  cacheComponents: true,
+  // cacheComponents (PPR) disabled until Phase 5 — Base UI TooltipProvider is not PPR-compatible
+  // Re-enable after migrating providers to PPR-safe boundaries
 
   // Turbopack config (top-level in Next.js 16, replaces experimental.turbopack)
   turbopack: {

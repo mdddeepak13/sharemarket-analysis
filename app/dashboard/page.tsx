@@ -1,17 +1,9 @@
 import { Suspense } from 'react'
-import { cacheLife } from 'next/cache'
 import { MarketOverview } from '@/components/stocks/MarketOverview'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export const metadata = { title: 'Market Overview' }
-
-async function MarketData() {
-  'use cache'
-  cacheLife('minutes')
-
-  return <MarketOverview />
-}
 
 export default function DashboardPage() {
   return (
@@ -24,7 +16,7 @@ export default function DashboardPage() {
       </div>
 
       <Suspense fallback={<MarketOverviewSkeleton />}>
-        <MarketData />
+        <MarketOverview />
       </Suspense>
     </div>
   )
