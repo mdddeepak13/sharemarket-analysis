@@ -3,7 +3,7 @@ export const MARKET_INDICES = [
   { ticker: 'QQQ', name: 'NASDAQ 100 ETF', description: 'Tracks NASDAQ 100' },
   { ticker: 'DIA', name: 'Dow Jones ETF', description: 'Tracks DJIA' },
   { ticker: 'IWM', name: 'Russell 2000 ETF', description: 'Tracks small caps' },
-  { ticker: 'VIX', name: 'Volatility Index', description: 'Market fear gauge' },
+  { ticker: 'GLD', name: 'Gold ETF', description: 'Tracks gold price' },
 ]
 
 export const MAJOR_FUTURES = [

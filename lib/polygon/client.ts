@@ -32,41 +32,44 @@ async function polygonFetch<T>(path: string, params: Record<string, string | num
 }
 
 // ─── Quotes ──────────────────────────────────────────────────────────────────
+// Free-tier Polygon plan does not include real-time snapshots.
+// We derive price/change from the last two available daily bars instead.
 
 export async function getSnapshot(ticker: string): Promise<StockQuote> {
-  const data = await polygonFetch<{
-    ticker: {
-      ticker: string
-      day: { o: number; h: number; l: number; c: number; v: number; vw: number }
-      lastTrade: { p: number; s: number; t: number }
-      prevDay: { o: number; h: number; l: number; c: number; v: number }
-      todaysChangePerc: number
-      todaysChange: number
-      updated: number
-    }
-  }>(`/v2/snapshot/locale/us/markets/stocks/tickers/${ticker.toUpperCase()}`)
+  const to = new Date()
+  const from = new Date()
+  from.setDate(from.getDate() - 10) // 10 calendar days → at least 2 trading days
 
-  const t = data.ticker
-  const price = t.lastTrade?.p ?? t.day?.c ?? 0
-  const prevClose = t.prevDay?.c ?? 0
+  const data = await polygonFetch<PolygonAggregatesResponse>(
+    `/v2/aggs/ticker/${ticker.toUpperCase()}/range/1/day/${from.toISOString().split('T')[0]}/${to.toISOString().split('T')[0]}`,
+    { adjusted: 'true', sort: 'asc', limit: 10 },
+  )
 
-  const rawChange = t.todaysChange ?? price - prevClose
-  const rawChangePercent = t.todaysChangePerc ?? (prevClose !== 0 ? ((price - prevClose) / prevClose) * 100 : 0)
+  const bars = data.results ?? []
+  if (bars.length === 0) throw new Error(`No data for ${ticker}`)
+
+  const latest = bars[bars.length - 1]
+  const prev   = bars.length > 1 ? bars[bars.length - 2] : null
+
+  const price      = latest.c
+  const prevClose  = prev?.c ?? latest.o
+  const change     = price - prevClose
+  const changePct  = prevClose !== 0 ? (change / prevClose) * 100 : 0
 
   return {
-    ticker: t.ticker,
-    name: t.ticker,
+    ticker: ticker.toUpperCase(),
+    name: ticker.toUpperCase(),
     price,
-    open: t.day?.o ?? 0,
-    high: t.day?.h ?? 0,
-    low: t.day?.l ?? 0,
-    close: t.day?.c ?? 0,
+    open: latest.o,
+    high: latest.h,
+    low: latest.l,
+    close: latest.c,
     previousClose: prevClose,
-    change: isFinite(rawChange) ? rawChange : 0,
-    changePercent: isFinite(rawChangePercent) ? rawChangePercent : 0,
-    volume: t.day?.v ?? 0,
+    change: isFinite(change) ? change : 0,
+    changePercent: isFinite(changePct) ? changePct : 0,
+    volume: latest.v,
     avgVolume: 0,
-    timestamp: t.updated ?? Date.now(),
+    timestamp: latest.t,
   }
 }
 
