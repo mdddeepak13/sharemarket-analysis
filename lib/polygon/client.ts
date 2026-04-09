@@ -9,11 +9,10 @@ import type {
   HistoricalBar,
 } from './types'
 
-const API_KEY = process.env.POLYGON_API_KEY!
-
 async function polygonFetch<T>(path: string, params: Record<string, string | number> = {}): Promise<T> {
   const url = new URL(`${POLYGON_BASE_URL}${path}`)
-  url.searchParams.set('apiKey', API_KEY)
+  // Read key at call-time, not module-init — Turbopack inlines module-level process.env at build time
+  url.searchParams.set('apiKey', process.env.POLYGON_API_KEY!)
   for (const [key, value] of Object.entries(params)) {
     url.searchParams.set(key, String(value))
   }
