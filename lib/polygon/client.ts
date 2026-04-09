@@ -18,7 +18,7 @@ async function polygonFetch<T>(path: string, params: Record<string, string | num
   }
 
   const res = await fetch(url.toString(), {
-    next: { revalidate: CACHE_TTL.QUOTE },
+    cache: 'no-store',
     headers: { 'Accept': 'application/json' },
   })
 
