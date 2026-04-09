@@ -50,6 +50,9 @@ export async function getSnapshot(ticker: string): Promise<StockQuote> {
   const price = t.lastTrade?.p ?? t.day?.c ?? 0
   const prevClose = t.prevDay?.c ?? 0
 
+  const rawChange = t.todaysChange ?? price - prevClose
+  const rawChangePercent = t.todaysChangePerc ?? (prevClose !== 0 ? ((price - prevClose) / prevClose) * 100 : 0)
+
   return {
     ticker: t.ticker,
     name: t.ticker,
@@ -59,8 +62,8 @@ export async function getSnapshot(ticker: string): Promise<StockQuote> {
     low: t.day?.l ?? 0,
     close: t.day?.c ?? 0,
     previousClose: prevClose,
-    change: t.todaysChange ?? price - prevClose,
-    changePercent: t.todaysChangePerc ?? ((price - prevClose) / prevClose) * 100,
+    change: isFinite(rawChange) ? rawChange : 0,
+    changePercent: isFinite(rawChangePercent) ? rawChangePercent : 0,
     volume: t.day?.v ?? 0,
     avgVolume: 0,
     timestamp: t.updated ?? Date.now(),

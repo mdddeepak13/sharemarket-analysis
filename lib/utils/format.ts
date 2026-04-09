@@ -26,7 +26,8 @@ export function formatMarketCap(cap: number): string {
   return `$${cap.toLocaleString()}`
 }
 
-export function formatPercent(value: number, decimals = 2): string {
+export function formatPercent(value: number | null | undefined, decimals = 2): string {
+  if (value == null || !isFinite(value)) return '—'
   return `${value >= 0 ? '+' : ''}${value.toFixed(decimals)}%`
 }
 
@@ -51,7 +52,8 @@ export function isPositive(value: number): boolean {
   return value > 0
 }
 
-export function getChangeColor(value: number): string {
+export function getChangeColor(value: number | null | undefined): string {
+  if (value == null || !isFinite(value)) return 'text-muted-foreground'
   if (value > 0) return 'text-emerald-400'
   if (value < 0) return 'text-red-400'
   return 'text-muted-foreground'
