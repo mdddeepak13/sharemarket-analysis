@@ -34,7 +34,6 @@ export async function upsertDocuments(
     metadata: doc.metadata,
   }))
 
-  // Pinecone v7 upsert requires { records: PineconeRecord[] }
   for (let i = 0; i < records.length; i += 100) {
     await index.upsert({ records: records.slice(i, i + 100) })
   }

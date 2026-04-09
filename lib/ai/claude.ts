@@ -1,6 +1,7 @@
 import { generateText, streamText } from 'ai'
 
-// Model routed through Vercel AI Gateway — note dot-notation for version
+// Model routed through Vercel AI Gateway via OIDC (VERCEL_OIDC_TOKEN).
+// Plain string model IDs are resolved automatically — no wrapper needed.
 export const CLAUDE_MODEL = 'anthropic/claude-sonnet-4.6'
 export const CLAUDE_FAST_MODEL = 'anthropic/claude-haiku-4.5'
 

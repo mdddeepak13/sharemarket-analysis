@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { generateEmbedding } from '@/lib/rag/embeddings'
-import { querySimilar } from '@/lib/rag/pinecone'
+import { querySimilar, type DocumentMetadata } from '@/lib/rag/pinecone'
 import { buildRAGSystemPrompt, buildRAGUserPrompt } from '@/lib/ai/prompts'
 import { createRAGStream } from '@/lib/ai/claude'
 
@@ -19,9 +19,14 @@ export async function POST(req: NextRequest) {
   const { message, ticker } = parsed.data
 
   try {
-    // Retrieve relevant context from Pinecone
-    const embedding = await generateEmbedding(message)
-    const matches = await querySimilar(embedding, 5, ticker ? { ticker } : undefined)
+    // Retrieve relevant context from Pinecone (optional — fails gracefully if no embedding key)
+    let matches: Array<{ id: string; score: number; metadata: DocumentMetadata }> = []
+    try {
+      const embedding = await generateEmbedding(message)
+      matches = await querySimilar(embedding, 5, ticker ? { ticker } : undefined)
+    } catch {
+      // No embedding model configured — Claude will answer from training data
+    }
 
     const context = matches
       .map((m, i) => `[${i + 1}] ${m.metadata.title} (${m.metadata.source}, ${m.metadata.publishedAt?.split('T')[0]})\n${m.metadata.text}`)
