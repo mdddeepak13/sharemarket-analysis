@@ -1,8 +1,12 @@
-import { getNews } from '@/lib/polygon/client'
+'use client'
+
+import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { formatDateTime } from '@/lib/utils/format'
 import { ExternalLink, Newspaper } from 'lucide-react'
+import type { NewsArticle } from '@/lib/polygon/types'
 
 const SENTIMENT_STYLES: Record<string, string> = {
   positive: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20',
@@ -10,8 +14,33 @@ const SENTIMENT_STYLES: Record<string, string> = {
   neutral:  'bg-muted text-muted-foreground',
 }
 
-export async function NewsSection({ ticker }: { ticker: string }) {
-  const articles = await getNews(ticker, 6).catch(() => [])
+export function NewsSection({ ticker }: { ticker: string }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['news', ticker],
+    queryFn: async () => {
+      const res = await fetch(`/api/stocks/news?ticker=${ticker}&limit=6`)
+      if (!res.ok) throw new Error('Failed to fetch news')
+      return res.json() as Promise<{ articles: NewsArticle[] }>
+    },
+    staleTime: 5 * 60_000,
+  })
+
+  const articles = data?.articles ?? []
+
+  if (isLoading) {
+    return (
+      <Card className="bg-card border-border">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <Newspaper className="h-4 w-4" /> Latest News
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {[1, 2, 3].map(i => <Skeleton key={i} className="h-14 w-full" />)}
+        </CardContent>
+      </Card>
+    )
+  }
 
   if (articles.length === 0) return null
 

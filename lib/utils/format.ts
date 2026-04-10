@@ -12,7 +12,8 @@ export function formatChange(change: number, percent: number): string {
   return `${sign}${formatPrice(change)} (${sign}${percent.toFixed(2)}%)`
 }
 
-export function formatVolume(volume: number): string {
+export function formatVolume(volume: number | null | undefined): string {
+  if (volume == null || !isFinite(volume)) return '—'
   if (volume >= 1_000_000_000) return `${(volume / 1_000_000_000).toFixed(2)}B`
   if (volume >= 1_000_000) return `${(volume / 1_000_000).toFixed(2)}M`
   if (volume >= 1_000) return `${(volume / 1_000).toFixed(1)}K`

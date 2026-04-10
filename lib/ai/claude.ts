@@ -1,18 +1,16 @@
 import { generateText, streamText } from 'ai'
+import { createAnthropic } from '@ai-sdk/anthropic'
 
-// Model routed through Vercel AI Gateway via OIDC (VERCEL_OIDC_TOKEN).
-// Plain string model IDs are resolved automatically — no wrapper needed.
-export const CLAUDE_MODEL = 'anthropic/claude-sonnet-4.6'
-export const CLAUDE_FAST_MODEL = 'anthropic/claude-haiku-4.5'
+function getModel(fast = false) {
+  const anthropic = createAnthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
+  return anthropic(fast ? 'claude-haiku-4-5' : 'claude-sonnet-4-5')
+}
 
 export async function generateAnalysisReport(prompt: string): Promise<string> {
   const { text } = await generateText({
-    model: CLAUDE_MODEL,
+    model: getModel(),
     maxOutputTokens: 1024,
     prompt,
-    providerOptions: {
-      gateway: { tags: ['feature:analysis', 'env:production'] },
-    },
   })
   return text
 }
@@ -23,12 +21,9 @@ export async function analyzeSentiment(prompt: string): Promise<{
   summary: string
 }> {
   const { text } = await generateText({
-    model: CLAUDE_FAST_MODEL,
+    model: getModel(true),
     maxOutputTokens: 256,
     prompt,
-    providerOptions: {
-      gateway: { tags: ['feature:sentiment'] },
-    },
   })
   try {
     return JSON.parse(text)
@@ -37,14 +32,22 @@ export async function analyzeSentiment(prompt: string): Promise<{
   }
 }
 
-export function createRAGStream(systemPrompt: string, userPrompt: string) {
+interface ChatMessage { role: 'user' | 'assistant'; content: string }
+
+export function createRAGStream(
+  systemPrompt: string,
+  userPrompt: string,
+  history: ChatMessage[] = [],
+) {
+  const messages: ChatMessage[] = [
+    ...history.slice(-10), // last 5 turns (10 messages) for context
+    { role: 'user', content: userPrompt },
+  ]
+
   return streamText({
-    model: CLAUDE_MODEL,
-    maxOutputTokens: 1024,
+    model: getModel(),
+    maxOutputTokens: 1500,
     system: systemPrompt,
-    prompt: userPrompt,
-    providerOptions: {
-      gateway: { tags: ['feature:rag-chat'] },
-    },
+    messages,
   })
 }

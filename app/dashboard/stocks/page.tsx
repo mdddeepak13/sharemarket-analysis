@@ -37,12 +37,25 @@ export default function StocksPage() {
   const { data: popularQuotes = [], isLoading: loadingPopular } = useQuery({
     queryKey: ['popular-quotes'],
     queryFn: async () => {
-      const results = await Promise.allSettled(
-        POPULAR_TICKERS.map(t => fetch(`/api/stocks/quote?ticker=${t}`).then(r => r.json()))
-      )
-      return results
-        .filter(r => r.status === 'fulfilled')
-        .map(r => (r as PromiseFulfilledResult<PopularQuote>).value)
+      // Stagger requests in batches of 4 to avoid Polygon free-tier rate limits
+      const BATCH_SIZE = 4
+      const all: PopularQuote[] = []
+      for (let i = 0; i < POPULAR_TICKERS.length; i += BATCH_SIZE) {
+        const batch = POPULAR_TICKERS.slice(i, i + BATCH_SIZE)
+        const results = await Promise.allSettled(
+          batch.map(t => fetch(`/api/stocks/quote?ticker=${t}`).then(r => r.json()))
+        )
+        for (const r of results) {
+          if (r.status === 'fulfilled' && r.value && typeof r.value.price === 'number') {
+            all.push(r.value as PopularQuote)
+          }
+        }
+        // Small pause between batches
+        if (i + BATCH_SIZE < POPULAR_TICKERS.length) {
+          await new Promise(res => setTimeout(res, 300))
+        }
+      }
+      return all
     },
     staleTime: 60_000,
   })

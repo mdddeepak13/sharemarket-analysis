@@ -1,26 +1,43 @@
-import { getSnapshot } from '@/lib/polygon/client'
+'use client'
+
+import { useQueries } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { formatPrice, formatPercent, getChangeColor } from '@/lib/utils/format'
 import { MARKET_INDICES } from '@/lib/utils/constants'
 import { TrendingUp, TrendingDown } from 'lucide-react'
 
-export async function MarketOverview() {
-  // Parallel fetch all indices
-  const snapshots = await Promise.allSettled(
-    MARKET_INDICES.map(idx => getSnapshot(idx.ticker))
-  )
+async function fetchQuote(ticker: string) {
+  const res = await fetch(`/api/stocks/quote?ticker=${ticker}`)
+  if (!res.ok) throw new Error(`Failed to fetch ${ticker}`)
+  return res.json()
+}
 
-  const quotes = snapshots.map((result, i) => ({
-    ...MARKET_INDICES[i],
-    data: result.status === 'fulfilled' ? result.value : null,
-  }))
+export function MarketOverview() {
+  const results = useQueries({
+    queries: MARKET_INDICES.map(idx => ({
+      queryKey: ['quote', idx.ticker],
+      queryFn: () => fetchQuote(idx.ticker),
+      staleTime: 60_000,
+      refetchInterval: 60_000,
+      retry: 2,
+    })),
+  })
 
   return (
     <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-      {quotes.map(({ ticker, name, data }) => (
-        <IndexCard key={ticker} ticker={ticker} name={name} data={data} />
-      ))}
+      {MARKET_INDICES.map((idx, i) => {
+        const result = results[i]
+        return (
+          <IndexCard
+            key={idx.ticker}
+            ticker={idx.ticker}
+            name={idx.name}
+            data={result.data ?? null}
+            loading={result.isLoading}
+          />
+        )
+      })}
     </div>
   )
 }
@@ -29,10 +46,12 @@ function IndexCard({
   ticker,
   name,
   data,
+  loading,
 }: {
   ticker: string
   name: string
   data: { price: number; changePercent: number; change: number } | null
+  loading: boolean
 }) {
   const isPositive = (data?.changePercent ?? 0) >= 0
   const Icon = isPositive ? TrendingUp : TrendingDown
@@ -43,7 +62,12 @@ function IndexCard({
         <CardTitle className="text-xs font-mono text-muted-foreground uppercase">{ticker}</CardTitle>
       </CardHeader>
       <CardContent className="px-4 pb-4">
-        {data ? (
+        {loading ? (
+          <>
+            <Skeleton className="h-6 w-24 mb-1" />
+            <Skeleton className="h-3 w-16" />
+          </>
+        ) : data ? (
           <>
             <div className="text-xl font-semibold font-mono tabular-nums">
               {formatPrice(data.price)}
